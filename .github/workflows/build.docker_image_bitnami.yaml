@@ -69,8 +69,13 @@ jobs:
           echo
           pwd; echo
 
+          cd ../../_temp
+          pwd; echo
+
           cd ${RUNNER_TEMP}
           pwd; echo
+
+
 
 
       - name: Set Dockerfile
