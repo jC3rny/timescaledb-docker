@@ -68,6 +68,9 @@ jobs:
           echo DOCKER_BUILD_CONTINUE=${DOCKER_BUILD_CONTINUE} >> $GITHUB_ENV
           echo DOCKER_PUSHED_TAGS=${DOCKER_PUSHED_TAGS} >> $GITHUB_ENV
 
+          pwd; echo
+          ls -alh
+
 
       - name: Update Dockerfile
         if: env.DOCKER_BUILD_CONTINUE == 'true'
@@ -93,7 +96,8 @@ jobs:
         if: env.DOCKER_BUILD_CONTINUE == 'true'
         uses: docker/build-push-action@v2
         with:
-          file: "bitnami/Dockerfile"
+          context: "."
+          file: "./bitnami/Dockerfile"
           push: true
           build-args: |
             TS_VERSION=${{ env.TS_BRANCH }}
