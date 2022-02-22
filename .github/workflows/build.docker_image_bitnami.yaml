@@ -20,7 +20,7 @@ env:
   GIT_LS_REMOTE_CMD: "git -c 'versionsort.suffix=-' ls-remote --refs --sort='version:refname' --tags"
   TS_REPO_URL: "https://github.com/timescale/timescaledb.git"
   TS_DOCKER_REPO_URL: "https://github.com/timescale/timescaledb-docker.git"
-  TS_DOCKER_TMP_DIR: "timescaledb-docker"
+  TS_DOCKER_TMP_DIR: "${RUNNER_TEMP}/timescaledb-docker"
   PG_REPO_URL: "https://github.com/bitnami/bitnami-docker-postgresql-repmgr.git"
   PG_DOCKER_IMAGE_REPO: "bitnami"
   PG_DOCKER_IMAGE_NAME: "postgresql-repmgr"
@@ -72,9 +72,9 @@ jobs:
         run: |
           echo ${{ env.DOCKER_BUILD_CONTINUE }}
 
-          git clone ${{ env.TS_DOCKER_REPO_URL }} ${RUNNER_TEMP}/${{ env.TS_DOCKER_TMP_DIR }}
+          git clone ${{ env.TS_DOCKER_REPO_URL }} ${{ env.TS_DOCKER_TMP_DIR }}
 
-          cd ${RUNNER_TEMP}/${{ env.TS_DOCKER_TMP_DIR }}/bitnami
+          cd ${{ env.TS_DOCKER_TMP_DIR }}/bitnami
           pwd; echo
 
           sed -i 's/\(FROM\) bitnami\/postgresql:${PG_VERSION}/\1 bitnami\/postgresql-repmgr:${PG_VERSION}/' ./Dockerfile
@@ -98,7 +98,7 @@ jobs:
         if: env.DOCKER_BUILD_CONTINUE == 'true'
         uses: docker/build-push-action@v2
         with:
-          context: ${RUNNER_TEMP}/${{ env.TS_DOCKER_TMP_DIR }}/bitnami
+          context: ${{ env.TS_DOCKER_TMP_DIR }}/bitnami
           push: true
           build-args: |
             TS_VERSION=${{ env.TS_BRANCH }}
