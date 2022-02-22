@@ -66,15 +66,6 @@ jobs:
           echo DOCKER_BUILD_CONTINUE=${DOCKER_BUILD_CONTINUE} >> $GITHUB_ENV
           echo DOCKER_PUSHED_TAGS=${DOCKER_PUSHED_TAGS} >> $GITHUB_ENV
 
-          echo
-          echo "TS_TAG:                   ${TS_TAG}"
-          echo "TS_BRANCH:                ${TS_BRANCH}"
-          echo "PG_DOCKER_TAG:            ${PG_DOCKER_TAG}"
-          echo "PG_DOCKER_BASE_IMAGE:     ${PG_DOCKER_BASE_IMAGE}"
-          echo "DOCKER_BUILD_IMAGE_TAG:   ${DOCKER_BUILD_IMAGE_TAG}"
-          echo "DOCKER_BUILD_CONTINUE:    ${DOCKER_BUILD_CONTINUE}"
-          echo "DOCKER_PUSHED_TAGS:       ${DOCKER_PUSHED_TAGS}"
-
 
       - name: Set Dockerfile
         if: env.DOCKER_BUILD_CONTINUE == 'true'
@@ -110,8 +101,8 @@ jobs:
           context: ${RUNNER_TEMP}/${{ env.TS_DOCKER_TMP_DIR }}/bitnami
           push: true
           build-args: |
-            TS_VERSION=${TS_BRANCH}
-            PG_VERSION=${PG_DOCKER_TAG}
+            TS_VERSION=${{ env.TS_BRANCH }}
+            PG_VERSION=${{ env.PG_DOCKER_TAG }}
             PREV_IMAGE=timescale/timescaledb:latest-pg${{ matrix.pg }}-bitnami
           tags: |
-            ${{ env.DOCKER_PUSH_IMAGE_REPO }}/${{ env.DOCKER_PUSH_IMAGE_NAME }}:${DOCKER_BUILD_IMAGE_TAG}
+            ${{ env.DOCKER_PUSH_IMAGE_REPO }}/${{ env.DOCKER_PUSH_IMAGE_NAME }}:${{ env.DOCKER_BUILD_IMAGE_TAG }}
