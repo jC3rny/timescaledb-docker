@@ -1,0 +1,117 @@
+name: build & push Docker image [bitnami]
+
+
+on:
+  push:
+    branches: [ main ]
+  # pull_request:
+  #   branches: [ main ]
+  # schedule:
+    # - cron:  "30 */12 * * *"
+    # - cron:  "0 6 * * *"
+  workflow_dispatch:
+
+
+env:
+  DOCKER_HUB_URL: "https://hub.docker.com/v2/repositories"
+  DOCKER_PUSH_IMAGE_REPO: "jc3rny"
+  DOCKER_PUSH_IMAGE_NAME: "timescaledb"
+  GIT_BASE_BRANCH: "main"
+  GIT_LS_REMOTE_CMD: "git -c 'versionsort.suffix=-' ls-remote --refs --sort='version:refname' --tags"
+  TS_REPO_URL: "https://github.com/timescale/timescaledb.git"
+  TS_DOCKER_REPO_URL: "https://github.com/timescale/timescaledb-docker.git"
+  TS_DOCKER_TMP_DIR: "timescaledb-docker"
+  PG_REPO_URL: "https://github.com/bitnami/bitnami-docker-postgresql-repmgr.git"
+  PG_DOCKER_IMAGE_REPO: "bitnami"
+  PG_DOCKER_IMAGE_NAME: "postgresql-repmgr"
+  PG_VERSIONS: "12, 13, 14"
+  TEST_OLD_IMAGE_NAME: "2.6.0-pg13.6.0-r9-repmgr-bitnami"
+
+
+jobs:
+  docker_image:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: [ 12, 13, 14 ]
+    
+    steps:
+      - uses: actions/checkout@v2
+
+
+      - name: Set Env
+        run: |
+          # DOCKER_PUSH_IMAGE="${{ env.DOCKER_PUSH_IMAGE_REPO }}/${{ env.DOCKER_PUSH_IMAGE_NAME }}:${DOCKER_BUILD_IMAGE_TAG}"
+
+          TS_TAG=$(${{ env.GIT_LS_REMOTE_CMD }} ${{ env.TS_REPO_URL }} | tail --lines=1 | cut --delimiter='/' --fields=3)
+          TS_BRANCH="$(cut --delimiter='.' --fields=-2 <<< ${TS_TAG}).x"
+          PG_DOCKER_TAG=$(${{ env.GIT_LS_REMOTE_CMD }} ${{ env.PG_REPO_URL }} | cut --delimiter='/' --fields=3 | grep -E "^${{ matrix.pg }}\." | tail --lines=1)
+          PG_DOCKER_BASE_IMAGE="${{ env.PG_DOCKER_IMAGE_REPO }}/${{ env.PG_DOCKER_IMAGE_NAME }}:${PG_DOCKER_TAG}"
+          DOCKER_BUILD_IMAGE_TAG="${TS_TAG}-pg-repmgr-$(sed 's/-debian-10-/_/' <<< ${PG_DOCKER_TAG})-bitnami"
+          DOCKER_PUSHED_TAGS="$(curl -sSL -X GET "${{ env.DOCKER_HUB_URL }}/${{ env.DOCKER_PUSH_IMAGE_REPO }}/${{ env.DOCKER_PUSH_IMAGE_NAME }}/tags/?page_size=100" | jq -r '.results[].name')"
+
+          if [ -z "$(grep -E "^${DOCKER_BUILD_IMAGE_TAG}$" <<< ${DOCKER_PUSHED_TAGS})" ]; then
+              DOCKER_BUILD_CONTINUE="true"
+          else
+              DOCKER_BUILD_CONTINUE="false"
+          fi
+
+          echo TS_TAG=${TS_TAG} >> $GITHUB_ENV
+          echo TS_BRANCH=${TS_BRANCH} >> $GITHUB_ENV
+          echo PG_DOCKER_TAG=${PG_DOCKER_TAG} >> $GITHUB_ENV
+          echo PG_DOCKER_BASE_IMAGE=${PG_DOCKER_BASE_IMAGE} >> $GITHUB_ENV
+          echo DOCKER_BUILD_IMAGE_TAG=${DOCKER_BUILD_IMAGE_TAG} >> $GITHUB_ENV
+          echo DOCKER_BUILD_CONTINUE=${DOCKER_BUILD_CONTINUE} >> $GITHUB_ENV
+          echo DOCKER_PUSHED_TAGS=${DOCKER_PUSHED_TAGS} >> $GITHUB_ENV
+
+          echo
+          echo "TS_TAG:                   ${TS_TAG}"
+          echo "TS_BRANCH:                ${TS_BRANCH}"
+          echo "PG_DOCKER_TAG:            ${PG_DOCKER_TAG}"
+          echo "PG_DOCKER_BASE_IMAGE:     ${PG_DOCKER_BASE_IMAGE}"
+          echo "DOCKER_BUILD_IMAGE_TAG:   ${DOCKER_BUILD_IMAGE_TAG}"
+          echo "DOCKER_BUILD_CONTINUE:    ${DOCKER_BUILD_CONTINUE}"
+          echo "DOCKER_PUSHED_TAGS:       ${DOCKER_PUSHED_TAGS}"
+
+
+      - name: Set Dockerfile
+        if: env.DOCKER_BUILD_CONTINUE == "true"
+        run: |
+          echo ${{ env.DOCKER_BUILD_CONTINUE }}
+
+          git clone ${{ env.TS_DOCKER_REPO_URL }} ${RUNNER_TEMP}/${{ env.TS_DOCKER_TMP_DIR }}
+
+          cd ${RUNNER_TEMP}/${{ env.TS_DOCKER_TMP_DIR }}/bitnami
+          pwd; echo
+
+          sed -i 's/\(FROM\) bitnami\/postgresql:${PG_VERSION}/\1 bitnami\/postgresql-repmgr:${PG_VERSION}/' ./Dockerfile
+          sed -i '/^RUN sed .*(shared_preload_libraries).*$/d' ./Dockerfile
+
+
+      - name: Set up Docker Buildx
+        if: env.DOCKER_BUILD_CONTINUE == "true"
+        uses: docker/setup-buildx-action@v1
+      
+
+      - name: Login to DockerHub
+        if: env.DOCKER_BUILD_CONTINUE == "true"
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+
+      - name: Build and push
+        if: env.DOCKER_BUILD_CONTINUE == "true"
+        uses: docker/build-push-action@v2
+        with:
+          context: ${RUNNER_TEMP}/${{ env.TS_DOCKER_TMP_DIR }}/bitnami
+          push: true
+          build-args: |
+            TS_VERSION=${TS_BRANCH}
+            PG_VERSION=${PG_DOCKER_TAG}
+            PREV_IMAGE=timescale/timescaledb:latest-pg${{ matrix.pg }}-bitnami
+          tags: |
+            ${{ env.DOCKER_PUSH_IMAGE_REPO }}/${{ env.DOCKER_PUSH_IMAGE_NAME }}:${DOCKER_BUILD_IMAGE_TAG}
