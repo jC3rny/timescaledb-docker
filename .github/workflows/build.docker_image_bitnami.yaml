@@ -39,6 +39,8 @@ jobs:
     
     steps:
       - uses: actions/checkout@v2
+        with:
+          repository: 'timescale/timescaledb-docker'
 
 
       - name: Set Env
@@ -66,30 +68,12 @@ jobs:
           echo DOCKER_BUILD_CONTINUE=${DOCKER_BUILD_CONTINUE} >> $GITHUB_ENV
           echo DOCKER_PUSHED_TAGS=${DOCKER_PUSHED_TAGS} >> $GITHUB_ENV
 
-          echo
-          pwd; echo
 
-          cd ../../_temp
-          pwd; echo
-
-          cd ${RUNNER_TEMP}
-          pwd; echo
-
-
-
-
-      - name: Set Dockerfile
+      - name: Update Dockerfile
         if: env.DOCKER_BUILD_CONTINUE == 'true'
         run: |
-          echo ${{ env.DOCKER_BUILD_CONTINUE }}
-
-          git clone ${{ env.TS_DOCKER_REPO_URL }} ${RUNNER_TEMP}/${{ env.TS_DOCKER_TMP_DIR }}
-
-          cd ${RUNNER_TEMP}/${{ env.TS_DOCKER_TMP_DIR }}/bitnami
-          pwd; echo
-
-          sed -i 's/\(FROM\) bitnami\/postgresql:${PG_VERSION}/\1 bitnami\/postgresql-repmgr:${PG_VERSION}/' ./Dockerfile
-          sed -i '/^RUN sed .*(shared_preload_libraries).*$/d' ./Dockerfile
+          sed -i 's/\(FROM\) bitnami\/postgresql:${PG_VERSION}/\1 bitnami\/postgresql-repmgr:${PG_VERSION}/' ./bitnami/Dockerfile
+          sed -i '/^RUN sed .*(shared_preload_libraries).*$/d' ./bitnami/Dockerfile
 
 
       - name: Set up Docker Buildx
@@ -109,7 +93,7 @@ jobs:
         if: env.DOCKER_BUILD_CONTINUE == 'true'
         uses: docker/build-push-action@v2
         with:
-          context: "../../_temp/${{ env.TS_DOCKER_TMP_DIR }}/bitnami"
+          context: "./bitnami"
           push: true
           build-args: |
             TS_VERSION=${{ env.TS_BRANCH }}
