@@ -3,7 +3,7 @@ name: build & push Docker image [bitnami]
 
 on:
   push:
-    branches: [ main ]
+    branches: [ fake ]
   # pull_request:
   #   branches: [ main ]
   # schedule:
