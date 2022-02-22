@@ -100,7 +100,7 @@ jobs:
           file: "./bitnami/Dockerfile"
           push: true
           build-args: |
-            TS_VERSION=${{ env.TS_BRANCH }}
+            TS_VERSION=2.5.2
             PG_VERSION=${{ env.PG_DOCKER_TAG }}
             PREV_IMAGE=timescale/timescaledb:latest-pg${{ matrix.pg }}-bitnami
           tags: |
