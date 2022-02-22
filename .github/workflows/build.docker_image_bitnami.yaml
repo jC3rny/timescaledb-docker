@@ -68,7 +68,9 @@ jobs:
 
           echo
           pwd; echo
-          ls -alh ${RUNNER_TEMP}
+
+          cd ${RUNNER_TEMP}
+          pwd; echo
 
 
       - name: Set Dockerfile
