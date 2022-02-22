@@ -109,7 +109,7 @@ jobs:
         if: env.DOCKER_BUILD_CONTINUE == 'true'
         uses: docker/build-push-action@v2
         with:
-          context: ${RUNNER_TEMP}/${{ env.TS_DOCKER_TMP_DIR }}/bitnami
+          context: "../../_temp/${{ env.TS_DOCKER_TMP_DIR }}/bitnami"
           push: true
           build-args: |
             TS_VERSION=${{ env.TS_BRANCH }}
