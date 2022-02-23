@@ -10,6 +10,8 @@ on:
     # - cron:  "30 */12 * * *"
     # - cron:  "0 6 * * *"
   workflow_dispatch:
+    inputs:
+      TS_VERSION: "2.5.2"
 
 
 env:
@@ -70,6 +72,9 @@ jobs:
 
           pwd; echo
           ls -alh
+
+          echo
+          echo "github.event.inputs.TS_VERSION:    ${{ github.event.inputs.TS_VERSION }}"
 
 
       - name: Update Dockerfile
