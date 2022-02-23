@@ -6,9 +6,9 @@ on:
   #   branches: [ main ]
   # pull_request:
   #   branches: [ main ]
-  # schedule:
+  schedule:
     # - cron:  "30 */12 * * *"
-    # - cron:  "0 6 * * *"
+    - cron:  "0 6 * * *"
   workflow_dispatch:
 
 
@@ -40,6 +40,7 @@ jobs:
       - name: Set Env
         run: |
           TS_VERSION="$(curl -sS ${{ env.TS_RELEASE_LATEST_URL }} | grep -oE '[0-9]{,2}\.[0-9]{,2}\.[0-9]{,2}')"
+          PREV_TS_VERSION="$(curl -sSL "https://raw.githubusercontent.com/timescale/timescaledb/${TS_VERSION}/version.config" | awk '$1 == "update_from_version" { print $3 }')"
           PG_DOCKER_TAG="$(${{ env.GIT_LS_REMOTE_CMD }} ${{ env.PG_REPO_URL }} | cut --delimiter='/' --fields=3 | grep -E "^${{ matrix.pg }}\." | tail --lines=1)"
           DOCKER_BUILD_IMAGE_TAG="${TS_VERSION}-pg-repmgr-$(sed 's/-debian-10-/_/' <<< ${PG_DOCKER_TAG})-bitnami"
           DOCKER_PUSHED_TAGS="$(curl -sSL -X GET "${{ env.DOCKERHUB_URL }}/${{ env.DOCKER_PUSH_IMAGE_REPO }}/${{ env.DOCKER_PUSH_IMAGE_NAME }}/tags/?page_size=100" | jq -r '.results[].name')"
@@ -51,6 +52,7 @@ jobs:
           fi
 
           echo TS_VERSION=${TS_VERSION} >> $GITHUB_ENV
+          echo PREV_TS_VERSION=${PREV_TS_VERSION} >> $GITHUB_ENV
           echo PG_DOCKER_TAG=${PG_DOCKER_TAG} >> $GITHUB_ENV
           echo DOCKER_BUILD_IMAGE_TAG=${DOCKER_BUILD_IMAGE_TAG} >> $GITHUB_ENV
           echo DOCKER_BUILD_CONTINUE=${DOCKER_BUILD_CONTINUE} >> $GITHUB_ENV
@@ -87,6 +89,6 @@ jobs:
           build-args: |
             TS_VERSION=${{ env.TS_VERSION }}
             PG_VERSION=${{ env.PG_DOCKER_TAG }}
-            PREV_IMAGE=timescale/timescaledb:latest-pg${{ matrix.pg }}-bitnami
+            PREV_IMAGE=timescale/timescaledb:${{ env.PREV_TS_VERSION }}-pg${{ matrix.pg }}-bitnami
           tags: |
             ${{ env.DOCKER_PUSH_IMAGE_REPO }}/${{ env.DOCKER_PUSH_IMAGE_NAME }}:${{ env.DOCKER_BUILD_IMAGE_TAG }}
