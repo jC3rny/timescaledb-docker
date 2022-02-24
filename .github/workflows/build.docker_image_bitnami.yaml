@@ -19,7 +19,7 @@ env:
   GIT_LS_REMOTE_CMD: "git -c 'versionsort.suffix=-' ls-remote --refs --sort='version:refname' --tags"
   PG_REPO_URL: "https://github.com/bitnami/bitnami-docker-postgresql-repmgr.git"
   TS_RELEASE_LATEST_URL: "https://github.com/timescale/timescaledb/releases/latest"
-  TS_VERSION: "2.5.2"
+  TS_VERSION: "latest"
   TS_VERSION_CONFIG_URL: "https://raw.githubusercontent.com/timescale/timescaledb/${TS_VERSION}/version.config"
 
 
@@ -74,6 +74,8 @@ jobs:
           echo "BUILD_IMAGE_TAG_FULL:   ${{ env.BUILD_IMAGE_TAG_FULL }}"
           echo "BUILD_IMAGE_TAG_SHORT:  ${{ env.BUILD_IMAGE_TAG_SHORT }}"
           echo "BUILD_IMAGE_TAG_BASE:   ${{ env.BUILD_IMAGE_TAG_BASE }}"
+
+          exit 1
 
 
       - name: Update Dockerfile
